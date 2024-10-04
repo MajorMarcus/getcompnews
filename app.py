@@ -3,21 +3,21 @@ from bs4 import BeautifulSoup
 import requests
 import urllib.parse
 from unidecode import unidecode
+from concurrent.futures import ThreadPoolExecutor
 
+session = requests.Session()  # Reuse session for better performance
 
 def extract_text_with_spacing(html_content):
     soup = BeautifulSoup(html_content, 'html.parser')
     text_elements = []
-    
+
     for p in soup.find_all('p'):
-        paragraph_text = []
-        for element in p.children:
-            if element.name == 'a':
-                paragraph_text.append(element.get_text())
-            elif element.name is None:
-                paragraph_text.append(element.strip())
-        
-        text_elements.append(' '.join(paragraph_text))
+        paragraph_text = ' '.join(
+            [element.get_text() if element.name == 'a' else element.strip() 
+            for element in p.children if element.name is None or element.name == 'a']
+        )
+        text_elements.append(paragraph_text)
+
     return ''.join(text_elements)
 
 def extract_actual_url(url):
@@ -27,77 +27,80 @@ def extract_actual_url(url):
         return None
 
     encoded_url = url[start + len(key):]
-    actual_url = urllib.parse.unquote(encoded_url)
-    actual_url = actual_url.replace('width=720', '')
-    
+    actual_url = urllib.parse.unquote(encoded_url).replace('width=720', '')
     return actual_url
 
-def scrapearticle(article_url, news_items, img_url, title):
+def scrapearticle(article_url, title, image):
     global text_elements
+    text_elements = ""
     if article_url:
-        article_response = requests.get(f"https://onefootball.com/{article_url}")
+        article_response = session.get(f"https://onefootball.com/{article_url}")
         article_soup = BeautifulSoup(article_response.text, 'html.parser')
         paragraph_divs = article_soup.find_all('div', class_='ArticleParagraph_articleParagraph__MrxYL')
+        
         if paragraph_divs:
             text_elements = extract_text_with_spacing(str(paragraph_divs))
         text_elements = unidecode(text_elements)
     
-    news_items.append({
+    return {
         'title': title,
         'article_content': text_elements,
-        'img_url': img_url,
-        'article_url': article_url,
-    })
+        'img_url': image,
+        'article_url': article_url
+    }
 
 app = Flask(__name__)
 
 @app.route('/scrape', methods=['GET'])
 def scrape():
     url = request.args.get('url')
-    response = requests.get(url)
-    soup1 = BeautifulSoup(response.content, 'html.parser')
-    logo = soup1.find('img', class_='EntityTitle_logo__WHQzH')
-    logo = logo['src']
-    logo = logo[66:]
-    competition = url[40:]
-    before_id = request.args.get('before_id', None)  # Get the before_id parameter, if any
-    
     if not url:
         return jsonify({'error': 'URL is required'}), 400
 
-    news_items = []
-    # Check if we're paginating with a before_id
+    # Fetch the main page
+    response = session.get(url)
+    soup1 = BeautifulSoup(response.content, 'html.parser')
+    logo_tag = soup1.find('img', class_='EntityTitle_logo__WHQzH')
+    logo = logo_tag['src'][66:] if logo_tag else None
+    competition = url[40:]
+
+    before_id = request.args.get('before_id', None)  # Pagination ID
+    api_url = f'https://api.onefootball.com/web-experience/en/competition/{competition}'
     if before_id:
-        response = requests.get(f'https://api.onefootball.com/web-experience/en/competition/{competition}?before_id={before_id}')
-    else:
-        response = requests.get(f'https://api.onefootball.com/web-experience/en/competition/{competition}')
-    
-    responsedata = response.json()
+        api_url += f'?before_id={before_id}'
+
+    api_response = session.get(api_url)
+    responsedata = api_response.json()
     teasers = responsedata['containers'][3]['fullWidth']['component']['gallery']['teasers']
-    
-    last_id = None  # Initialize last_id to store the ID of the last article
-    
-    for i in teasers:
-        link = i['link']
-        title2 = i['title']
-        # Skip articles with "most league assists" in the title
-        if 'most league assists' in title2.lower():
-            continue
-        else:
-            image = i['imageObject']['path']
-            image = urllib.parse.unquote(image) if image else None
+
+    news_items = []
+    last_id = None
+
+    # Use a thread pool for concurrent article scraping
+    with ThreadPoolExecutor() as executor:
+        futures = []
+        for teaser in teasers:
+            title = teaser['title']
+            if 'most league assists' in title.lower():
+                continue  # Skip specific titles
+            image = teaser['imageObject']['path'] if 'imageObject' in teaser else None
             image = extract_actual_url(image) if image else None
-            image=image[:-12]
-            scrapearticle(article_url=link, news_items=news_items, img_url=image, title=title2)
-            
-            # Update last_id with the current article's ID (useful for pagination)
-            last_id = i['id']
-    
-    # Return the news items and the last ID for pagination
+            image = image[:-12] if image else None  # Remove width modification
+
+            link = teaser['link']
+            last_id = teaser['id']  # Update last_id for pagination
+
+            futures.append(
+                executor.submit(scrapearticle, article_url=link, title=title, image=image)
+            )
+        
+        for future in futures:
+            news_items.append(future.result())
+
     return jsonify({
         'news_items': news_items,
         'last_id': last_id,
-        'logo':logo  # Return the last ID so it can be used for the next page
+        'logo': logo
     })
 
 if __name__ == '__main__':
