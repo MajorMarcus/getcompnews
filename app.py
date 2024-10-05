@@ -30,7 +30,7 @@ def extract_actual_url(url):
     actual_url = urllib.parse.unquote(encoded_url).replace('width=720', '')
     return actual_url
 
-def scrapearticle(article_url, title, image):
+def scrapearticle(article_url, title, image, time):
     global text_elements
     text_elements = ""
     if article_url:
@@ -47,6 +47,7 @@ def scrapearticle(article_url, title, image):
         'title': title,
         'article_content': text_elements,
         'img_url': image,
+        'time':time,
         'article_url': article_url,
         'article_id' :article_id
     }
@@ -90,10 +91,11 @@ def scrape():
             image = image[:-12] if image else None  # Remove width modification
 
             link = teaser['link']
+            time = teaser['publishTime']
             last_id = teaser['id']  # Update last_id for pagination
 
             futures.append(
-                executor.submit(scrapearticle, article_url=link, title=title, image=image)
+                executor.submit(scrapearticle, article_url=link, title=title, image=image, time=time)
             )
         
         for future in futures:
