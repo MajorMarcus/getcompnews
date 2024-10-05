@@ -49,7 +49,8 @@ def scrapearticle(article_url, title, image, time):
         'img_url': image,
         'time':time,
         'article_url': article_url,
-        'article_id' :article_id
+        'article_id' :article_id,
+        'publisher':publisher
     }
 
 app = Flask(__name__)
@@ -92,6 +93,7 @@ def scrape():
 
             link = teaser['link']
             time = teaser['publishTime']
+            publisher = teaser['publisherName']
             last_id = teaser['id']  # Update last_id for pagination
 
             futures.append(
