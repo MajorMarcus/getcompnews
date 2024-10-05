@@ -30,7 +30,7 @@ def extract_actual_url(url):
     actual_url = urllib.parse.unquote(encoded_url).replace('width=720', '')
     return actual_url
 
-def scrapearticle(article_url, title, image, time):
+def scrapearticle(article_url, title, image, time, publisher):
     global text_elements
     text_elements = ""
     if article_url:
@@ -97,7 +97,7 @@ def scrape():
             last_id = teaser['id']  # Update last_id for pagination
 
             futures.append(
-                executor.submit(scrapearticle, article_url=link, title=title, image=image, time=time)
+                executor.submit(scrapearticle, article_url=link, title=title, image=image, time=time, publisher=publisher)
             )
         
         for future in futures:
