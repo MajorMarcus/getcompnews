@@ -36,6 +36,7 @@ def scrapearticle(article_url, title, image):
     if article_url:
         article_response = session.get(f"https://onefootball.com/{article_url}")
         article_soup = BeautifulSoup(article_response.text, 'html.parser')
+        article_id = article_url[-8:]
         paragraph_divs = article_soup.find_all('div', class_='ArticleParagraph_articleParagraph__MrxYL')
         
         if paragraph_divs:
@@ -46,7 +47,8 @@ def scrapearticle(article_url, title, image):
         'title': title,
         'article_content': text_elements,
         'img_url': image,
-        'article_url': article_url
+        'article_url': article_url,
+        'article_id' :article_id
     }
 
 app = Flask(__name__)
