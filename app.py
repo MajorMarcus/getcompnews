@@ -92,8 +92,8 @@ def scrape():
         for teaser in teasers:
             
             image = teaser['imageObject']['path'] if 'imageObject' in teaser else None
-            if image == False || null:
-                pass
+            if not image:
+                continue
             else:
                 title = teaser['title']
                 if 'most league assists' in title.lower():
