@@ -92,7 +92,9 @@ def scrape():
         for teaser in teasers:
             
             image = teaser['imageObject']['path'] if 'imageObject' in teaser else None
-            if image == True:
+            if image == False:
+                pass
+            else:
                 title = teaser['title']
                 if 'most league assists' in title.lower():
                     continue  # Skip specific titles
@@ -108,8 +110,6 @@ def scrape():
                 futures.append(
                     executor.submit(scrapearticle, article_url=link, title=title, image=image, time=time, publisher=publisher)
                 )
-            else:
-                pass
         
         for future in futures:
             news_items.append(future.result())
