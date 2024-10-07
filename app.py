@@ -92,7 +92,7 @@ def scrape():
         for teaser in teasers:
             
             image = teaser['imageObject']['path'] if 'imageObject' in teaser else None
-            if image == False:
+            if image == False || null:
                 pass
             else:
                 title = teaser['title']
