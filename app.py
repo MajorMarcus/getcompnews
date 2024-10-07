@@ -25,10 +25,16 @@ def extract_actual_url(url):
     start = url.find(key)
     if start == -1:
         return None
-
-    encoded_url = url[start + len(key):]
-    actual_url = urllib.parse.unquote(encoded_url).replace('width=720', '')
-    return actual_url
+    if 'betting' in url:
+        return False 
+    elif 'squawka' in url:
+        return False
+    elif "bit.ly" in url:
+        return False
+    elif "footballtoday.com" in url:
+        return False
+    else:
+        return urllib.parse.unquote(url[start + len(key):]).replace('width=720', '')
 
 def scrapearticle(article_url, title, image, time, publisher):
     global text_elements
