@@ -90,21 +90,26 @@ def scrape():
     with ThreadPoolExecutor() as executor:
         futures = []
         for teaser in teasers:
-            title = teaser['title']
-            if 'most league assists' in title.lower():
-                continue  # Skip specific titles
+            
             image = teaser['imageObject']['path'] if 'imageObject' in teaser else None
-            image = extract_actual_url(image) if image else None
-            image = image[:-12] if image else None  # Remove width modification
-
-            link = teaser['link']
-            time = teaser['publishTime']
-            publisher = teaser['publisherName']
-            last_id = teaser['id']  # Update last_id for pagination
-
-            futures.append(
-                executor.submit(scrapearticle, article_url=link, title=title, image=image, time=time, publisher=publisher)
-            )
+            if image:
+                title = teaser['title']
+                if 'most league assists' in title.lower():
+                    continue  # Skip specific titles
+                image = teaser['imageObject']['path'] if 'imageObject' in teaser else None
+                image = extract_actual_url(image) if image else None
+                image = image[:-12] if image else None  # Remove width modification
+    
+                link = teaser['link']
+                time = teaser['publishTime']
+                publisher = teaser['publisherName']
+                last_id = teaser['id']  # Update last_id for pagination
+    
+                futures.append(
+                    executor.submit(scrapearticle, article_url=link, title=title, image=image, time=time, publisher=publisher)
+                )
+            else:
+                pass
         
         for future in futures:
             news_items.append(future.result())
