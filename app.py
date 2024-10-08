@@ -26,7 +26,7 @@ def extract_actual_url(url):
     if start == -1:
         return None
     if 'betting' in url:
-        return False 
+        return False
     elif 'squawka' in url:
         return False
     elif "bit.ly" in url:
@@ -93,6 +93,7 @@ def scrape():
             
             image = teaser['imageObject']['path'] if 'imageObject' in teaser else None
             if not image:
+                print(image)
                 continue
             else:
                 title = teaser['title']
