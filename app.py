@@ -92,15 +92,14 @@ def scrape():
         for teaser in teasers:
             
             image = teaser['imageObject']['path'] if 'imageObject' in teaser else None
-            if not image:
-                print(image)
-                continue
-            else:
+            image = extract_actual_url(image)
+            if image:
                 title = teaser['title']
                 if 'most league assists' in title.lower():
                     continue  # Skip specific titles
                 image = teaser['imageObject']['path'] if 'imageObject' in teaser else None
                 image = extract_actual_url(image) if image else None
+
                 image = image[:-12] if image else None  # Remove width modification
     
                 link = teaser['link']
@@ -111,6 +110,8 @@ def scrape():
                 futures.append(
                     executor.submit(scrapearticle, article_url=link, title=title, image=image, time=time, publisher=publisher)
                 )
+            else:
+                print(image)
         
         for future in futures:
             news_items.append(future.result())
