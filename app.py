@@ -81,8 +81,10 @@ def scrape():
 
     api_response = session.get(api_url)
     responsedata = api_response.json()
-    teasers = responsedata['containers'][3]['fullWidth']['component']['gallery']['teasers']
-
+    try:
+        teasers = responsedata['containers'][3]['fullWidth']['component']['gallery']['teasers']
+    except:
+        teasers = response.get('teasers')
     news_items = []
     last_id = None
 
