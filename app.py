@@ -84,7 +84,7 @@ def scrape():
     try:
         teasers = responsedata['containers'][3]['fullWidth']['component']['gallery']['teasers']
     except:
-        teasers = response.get('teasers')
+        teasers = responsedata.get('teasers')
     news_items = []
     last_id = None
 
